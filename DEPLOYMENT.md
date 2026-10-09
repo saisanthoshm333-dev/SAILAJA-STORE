@@ -8,7 +8,7 @@ The Android app is a Capacitor WebView for the existing Express application. Exp
 2. In Atlas **Network Access**, allow the outbound IP addresses shown for your Render service. Avoid allowing all IP addresses unless you deliberately accept that exposure.
 3. In Render, create a Blueprint from this repository and apply `render.yaml`.
 4. Set the requested `MONGODB_URI` secret to the completed Atlas URI. Keep the WhatsApp session disk enabled; it preserves the linked WhatsApp Web session across restarts and deploys.
-5. On the first server start, scan the WhatsApp QR code printed in the Render service logs with the dedicated store account. The service starts Chromium in headless mode on Render.
+5. The Render build downloads the Puppeteer-managed Chrome version required by the locked Puppeteer version and verifies it can run. On the first server start, scan the WhatsApp QR code printed in the Render service logs with the dedicated store account. The service starts Chrome in headless mode on Render.
 6. Wait for the Render health check at `/health` to pass, then copy the assigned HTTPS service origin. No URL is baked into the project.
 
 The server does not start accepting requests until MongoDB connects. A failed Atlas connection is reported at startup rather than allowing the app to run in a disconnected state.
@@ -25,7 +25,7 @@ npm start
 
 The `.env` file is ignored by Git. Do not paste Atlas credentials into `.env.example` or commit them. Check `/health` locally after startup; a successful response reports `"database": "connected"`.
 
-The Render service uses a paid instance because persistent disks are required for the WhatsApp login session. WhatsApp Web automation is provided by the existing unofficial WBM integration and may need maintenance if WhatsApp changes its web client.
+The Render service uses a paid instance because persistent disks are required for the WhatsApp login session. Puppeteer's browser cache is kept under `/opt/render/project/src/.cache/puppeteer` during the build and is not downloaded again on each server start. WhatsApp Web automation is provided by the existing unofficial WBM integration and may need maintenance if WhatsApp changes its web client.
 
 ## Prepare and build the Android app
 

@@ -1,9 +1,23 @@
+const fs = require("node:fs");
+const { createRequire } = require("node:module");
+
 let wbm;
+let puppeteer;
+
+function describeError(error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.replace(
+        /\b((?:mongodb(?:\+srv)?|https?):\/\/)[^/@\s]+@/gi,
+        "$1[REDACTED]@"
+    );
+}
 
 try {
+    const requireWbm = createRequire(require.resolve("wbm"));
     wbm = require("wbm");
+    puppeteer = requireWbm("puppeteer");
 } catch (error) {
-    console.error("WhatsApp WBM could not be loaded:", error);
+    console.error("WhatsApp WBM could not be loaded:", describeError(error));
 }
 
 let connected = false;
@@ -41,12 +55,26 @@ function initializeWhatsApp() {
                 throw new Error("The WBM package is unavailable");
             }
 
+            if (!puppeteer) {
+                throw new Error("The WBM Puppeteer package is unavailable");
+            }
+
+            const showBrowser = process.env.WHATSAPP_SHOW_BROWSER !== "false";
+            const executablePath = puppeteer.executablePath({
+                headless: !showBrowser
+            });
+            if (!fs.existsSync(executablePath)) {
+                throw new Error(
+                    `Puppeteer browser executable is missing at ${executablePath}. Run npm run install:browser during deployment.`
+                );
+            }
+
             // WBM automates WhatsApp Web unofficially. Use a dedicated shop account;
             // never put a personal number or QR/session credentials in application data.
             console.log("Launching browser...");
             console.log("Waiting for WhatsApp Web...");
             await wbm.start({
-                showBrowser: process.env.WHATSAPP_SHOW_BROWSER !== "false",
+                showBrowser,
                 session: true
             });
             connected = true;
@@ -55,7 +83,7 @@ function initializeWhatsApp() {
             return true;
         } catch (error) {
             connected = false;
-            console.error("WhatsApp authentication failure:", error);
+            console.error("WhatsApp initialization failed:", describeError(error));
             return false;
         } finally {
             initializationPromise = null;
