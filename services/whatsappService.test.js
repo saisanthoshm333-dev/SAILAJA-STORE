@@ -76,3 +76,44 @@ test("WhatsApp startup logs failures and stays headless on Render", async () => 
         }
     }
 });
+
+test("concurrent WhatsApp initialization shares one readiness attempt", async () => {
+    const originalStart = wbm.start;
+    const originalEnd = wbm.end;
+    let resolveStart;
+    let startCalls = 0;
+    let signalStart;
+    const started = new Promise((resolve) => {
+        signalStart = resolve;
+    });
+    const startResult = new Promise((resolve) => {
+        resolveStart = resolve;
+    });
+
+    wbm.start = async () => {
+        startCalls += 1;
+        signalStart();
+        await startResult;
+    };
+    wbm.end = async () => {};
+
+    try {
+        const firstAttempt = whatsappService.initializeWhatsApp();
+        const secondAttempt = whatsappService.initializeWhatsApp();
+
+        assert.strictEqual(firstAttempt, secondAttempt);
+        await started;
+        assert.equal(startCalls, 1);
+        assert.equal(whatsappService.isWhatsAppConnected(), false);
+
+        resolveStart();
+        assert.equal(await firstAttempt, true);
+        assert.equal(whatsappService.isWhatsAppConnected(), true);
+
+        await whatsappService.disconnectWhatsApp();
+        assert.equal(whatsappService.isWhatsAppConnected(), false);
+    } finally {
+        wbm.start = originalStart;
+        wbm.end = originalEnd;
+    }
+});

@@ -1,7 +1,17 @@
 diff --git a/node_modules/wbm/src/api.js b/node_modules/wbm/src/api.js
+index 6bdba04..e4473a9 100644
 --- a/node_modules/wbm/src/api.js
 +++ b/node_modules/wbm/src/api.js
-@@ -8,15 +8,21 @@ var rimraf = require("rimraf");
+@@ -1,22 +1,28 @@
+ const puppeteer = require("puppeteer");
+ const qrcode = require("qrcode-terminal");
+-const { from, merge } = require('rxjs');
+-const { take } = require('rxjs/operators');
+ const path = require('path');
+ var rimraf = require("rimraf");
++const { waitForWhatsAppPageState } = require("../../../services/whatsappAuth");
++const { shouldPrintWhatsAppQr } = require("../../../services/whatsappConfig");
+
  let browser = null;
  let page = null;
  let counter = { fails: 0, success: 0 }
@@ -12,7 +22,7 @@ diff --git a/node_modules/wbm/src/api.js b/node_modules/wbm/src/api.js
      LOADING: "progress",
 -    INSIDE_CHAT: "document.getElementsByClassName('two')[0]",
 -    QRCODE_PAGE: "body > div > div > .landing-wrapper",
-+    INSIDE_CHAT: "document.querySelector('#pane-side')",
++    INSIDE_CHAT: "#pane-side",
 +    QRCODE_PAGE: "div[data-ref]",
      QRCODE_DATA: "div[data-ref]",
      QRCODE_DATA_ATTR: "data-ref",
@@ -43,28 +53,119 @@ diff --git a/node_modules/wbm/src/api.js b/node_modules/wbm/src/api.js
          page.setDefaultTimeout(60000);
  
          await page.goto("https://web.whatsapp.com");
-@@ -59,7 +67,6 @@ async function start({ showBrowser = false, qrCodeData = false, session = true }
+@@ -55,11 +63,27 @@ async function start({ showBrowser = false, qrCodeData = false, session = true }
+                 return await getQRCodeData();
+             } else {
+                 await generateQRCode();
++                if (!await isAuthenticated()) {
++                    throw new Error(
++                        "WhatsApp QR disappeared before authenticated chat became ready."
++                    );
++                }
+             }
          }
  
      } catch (err) {
 -        deleteSession(tmpPath);
++        if (browser && browser.isConnected()) {
++            try {
++                await browser.close();
++            } catch (closeError) {
++                console.error(
++                    "WhatsApp browser cleanup failed after startup error:",
++                    closeError.message || "Unknown cleanup error."
++                );
++            }
++        }
++        browser = null;
++        page = null;
          throw err;
      }
  }
-@@ -113,10 +120,10 @@ async function getQRCodeData() {
+@@ -67,30 +91,13 @@ async function start({ showBrowser = false, qrCodeData = false, session = true }
+ /**
+  * Check if needs to scan qr code or already is is inside the chat
+  */
+-function isAuthenticated() {
++async function isAuthenticated() {
+     console.log('Authenticating...');
+-    return merge(needsToScan(page), isInsideChat(page))
+-        .pipe(take(1))
+-        .toPromise();
+-}
+-
+-function needsToScan() {
+-    return from(
+-        page
+-            .waitForSelector(SELECTORS.QRCODE_PAGE, {
+-                timeout: 0,
+-            }).then(() => false)
+-    );
+-}
+-
+-function isInsideChat() {
+-    return from(
+-        page
+-            .waitForFunction(SELECTORS.INSIDE_CHAT,
+-                {
+-                    timeout: 0,
+-                }).then(() => true)
+-    );
++    const state = await waitForWhatsAppPageState(page, {
++        chatSelector: SELECTORS.INSIDE_CHAT,
++        qrSelector: SELECTORS.QRCODE_PAGE
++    });
++    return state === "chat";
+ }
+
+ function deleteSession() {
+@@ -113,11 +120,22 @@ async function getQRCodeData() {
   */
  async function generateQRCode() {
      try {
 -        console.log("generating QRCode...");
          const qrcodeData = await getQRCodeData();
++        if (!shouldPrintWhatsAppQr()) {
++            throw new Error(
++                "WhatsApp account requires QR pairing; QR output is disabled in production logs."
++            );
++        }
 +        console.log("WhatsApp QR generated.");
          qrcode.generate(qrcodeData, { small: true });
 -        console.log("QRCode generated! Scan it using Whatsapp App.");
 +        console.log("WhatsApp QR displayed. Scan it using the dedicated shop account.");
      } catch (err) {
++        if (
++            err instanceof Error &&
++            err.message.includes("QR output is disabled in production logs")
++        ) {
++            throw await QRCodeExeption(err.message);
++        }
          throw await QRCodeExeption("QR Code can't be generated(maybe your connection is too slow).");
      }
-@@ -155,22 +162,182 @@ async function sendTo(phoneOrContact, message) {
+     await waitQRCode();
+@@ -127,9 +145,18 @@ async function generateQRCode() {
+  * Wait 30s to the qrCode be hidden on page
+  */
+ async function waitQRCode() {
+-    // if user scan QR Code it will be hidden
+     try {
+-        await page.waitForSelector(SELECTORS.QRCODE_PAGE, { timeout: 30000, hidden: true });
++        await waitForWhatsAppPageState(
++            page,
++            {
++                chatSelector: SELECTORS.INSIDE_CHAT,
++                qrSelector: SELECTORS.QRCODE_PAGE
++            },
++            {
++                expectedState: "chat",
++                timeoutMs: 30000
++            }
++        );
+     } catch (err) {
+         throw await QRCodeExeption("Dont't be late to scan the QR Code.");
+     }
+@@ -155,22 +182,182 @@ async function sendTo(phoneOrContact, message) {
          phone = phoneOrContact.phone;
          message = generateCustomMessage(phoneOrContact, message);
      }
