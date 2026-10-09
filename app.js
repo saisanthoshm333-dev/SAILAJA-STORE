@@ -6,12 +6,13 @@ const helmet = require("helmet");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const dotenv = require("dotenv");
+const { connectToMongo, getMongoUri } = require("./services/mongodb");
 
 dotenv.config();
 
-const Customer = require("./models/Customer");
-const Bill = require("./models/Bill");
-const Payment = require("./models/Payment");
+const Customer = require("./models/customer");
+const Bill = require("./models/bill");
+const Payment = require("./models/payment");
 const Item = require("./models/Item");
 const Expense = require("./models/Expense");
 const whatsappService = require("./services/whatsappService");
@@ -21,8 +22,6 @@ const app = express();
 app.locals.toDateInputValue = toDateInputValue;
 
 const PORT = Number(process.env.PORT) || 3000;
-
-const MONGO_URL = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/lekko";
 
 const apiLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -231,21 +230,6 @@ async function getMonthlyStats() {
     };
 
 }
-
-
-// =========================
-// MONGODB CONNECTION
-// =========================
-
-mongoose
-    .connect(MONGO_URL)
-    .then(() => {
-        console.log("MongoDB connected successfully ✅");
-    })
-    .catch((err) => {
-        console.error("MongoDB connection failed ❌");
-        console.error(err);
-    });
 
 
 // =========================
@@ -2226,15 +2210,23 @@ app.use((req, res) => {
 // START SERVER
 // =========================
 
-app.listen(PORT, () => {
+async function startServer() {
+    const mongoUri = getMongoUri();
+    await connectToMongo(mongoUri);
 
-    console.log(
-        `LEKKO running at http://localhost:${PORT}`
-    );
+    const server = app.listen(PORT, () => {
+        console.log(`LEKKO running at http://localhost:${PORT}`);
 
-    // WBM opens WhatsApp Web for QR pairing; connection failure must not stop billing.
+        // WBM opens WhatsApp Web for QR pairing; connection failure must not stop billing.
         whatsappService.initializeWhatsApp().catch((error) => {
-            console.error("WhatsApp initialization failed:", error);
+            console.error("WhatsApp initialization failed:", error.message || error);
         });
+    });
 
+    return server;
+}
+
+startServer().catch((error) => {
+    console.error("Server startup failed:", error.message || error);
+    process.exitCode = 1;
 });
