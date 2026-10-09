@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suppliers | SAILAJA STORE</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container mobile-shell">
+        <%- include("partials/header") %>
+
+        <main class="supplier-screen">
+            <section class="summary-card">
+                <div class="summary-meta">
+                    <span>Today's Expense</span>
+                    <h2>₹<%= Number(todayTotal || 0).toLocaleString("en-IN") %></h2>
+                </div>
+                <p><%= todayItemCount %> item<%= todayItemCount === 1 ? "" : "s" %> today</p>
+                <a class="primary-action button-link" href="/suppliers/expenses/add">+ Add Expense</a>
+            </section>
+
+            <section class="card-block">
+                <div class="section-title-row">
+                    <h3>Items</h3>
+                    <button class="ghost-button" type="button" id="toggle-add-item">+ Add Item</button>
+                </div>
+
+                <% if (items.length === 0) { %>
+                    <div class="empty-state">
+                        <p>Add an item such as Milk or Biscuits to get started.</p>
+                    </div>
+                <% } else { %>
+                    <div class="item-grid">
+                        <% items.forEach((item) => {
+                            const itemSummary = totalsByItem.get(String(item._id));
+                            const itemTotal = itemSummary ? itemSummary.total : 0;
+                            const itemCount = itemSummary ? itemSummary.count : 0;
+                        %>
+                            <a class="item-card" href="/suppliers/items/<%= item._id %>">
+                                <span class="item-card__name"><%= item.name %></span>
+                                <strong>₹<%= Number(itemTotal).toLocaleString("en-IN") %></strong>
+                                <small><%= itemCount %> entr<%= itemCount === 1 ? "y" : "ies" %></small>
+                            </a>
+                        <% }) %>
+                    </div>
+                <% } %>
+            </section>
+
+            <section class="card-block">
+                <div class="section-title-row">
+                    <h3>Today's entries</h3>
+                    <a href="/suppliers/today">View all</a>
+                </div>
+
+                <% if (todayExpenses.length === 0) { %>
+                    <div class="empty-state">
+                        <p>No expenses recorded today.</p>
+                    </div>
+                <% } else { %>
+                    <% todayExpenses.forEach((expense) => { %>
+                        <div class="expense-row">
+                            <div>
+                                <strong><%= expense.itemName %></strong>
+                                <small><%= new Date(expense.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) %><%= expense.notes ? ` · ${expense.notes}` : "" %></small>
+                            </div>
+                            <div class="expense-row__meta">
+                                <span>₹<%= Number(expense.amount).toLocaleString("en-IN") %></span>
+                                <div class="expense-row__actions">
+                                    <button class="link-button" type="button" data-edit-expense data-id="<%= expense._id %>" data-date="<%= toDateInputValue(expense.date) %>" data-amount="<%= expense.amount %>" data-notes="<%= expense.notes %>">Edit</button>
+                                    <button class="link-button danger" type="button" data-delete-expense data-id="<%= expense._id %>">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } %>
+            </section>
+
+            <nav class="supplier-links" aria-label="Supplier pages">
+                <a class="secondary-action button-link" href="/suppliers/reports">Expense Reports</a>
+            </nav>
+
+            <section class="card-block hidden" id="add-item-form-block">
+                <h3>Add New Item</h3>
+                <form id="item-form" class="stack-form">
+                    <label>
+                        <span>Item Name</span>
+                        <input type="text" name="name" maxlength="60" placeholder="Milk" required>
+                    </label>
+
+                    <p id="item-form-message" class="form-message" role="status"></p>
+                    <button class="primary-action submit-button" type="submit">Add Item</button>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <%- include("partials/expense-editor") %>
+
+    <script>
+        const itemForm = document.getElementById("item-form");
+        const itemBlock = document.getElementById("add-item-form-block");
+        const toggleItem = document.getElementById("toggle-add-item");
+        const itemMessage = document.getElementById("item-form-message");
+
+        toggleItem.addEventListener("click", () => {
+            itemBlock.classList.toggle("hidden");
+            if (!itemBlock.classList.contains("hidden")) {
+                itemBlock.scrollIntoView({ behavior: "smooth" });
+                itemForm.elements.name.focus();
+            }
+        });
+
+        itemForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            itemMessage.textContent = "";
+            const submitButton = itemForm.querySelector("[type=submit]");
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch("/api/items", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(Object.fromEntries(new FormData(itemForm).entries()))
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    itemMessage.textContent = result.message || "Unable to add the item. Please try again.";
+                    return;
+                }
+
+                window.location.reload();
+            } catch (error) {
+                itemMessage.textContent = "Unable to connect. Please try again.";
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

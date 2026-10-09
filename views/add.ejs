@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Add Customer - SAILAJA STORE</title>
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+</head>
+
+
+<body>
+
+    <div class="container">
+
+        <!-- =========================
+             COMMON HEADER
+        ========================== -->
+
+        <%- include("partials/header") %>
+
+
+        <!-- =========================
+             ADD CUSTOMER FORM
+        ========================== -->
+
+        <div class="form-container">
+
+            <h1>Add Customer</h1>
+
+            <p>Add a new customer to your SAILAJA STORE.</p>
+
+
+            <form action="/customers/add" method="POST">
+
+                <!-- NAME -->
+
+                <div class="form-group">
+
+                    <label for="name">
+                        Customer Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        placeholder="Enter customer name"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- MOBILE -->
+
+                <div class="form-group">
+
+                    <label for="mobile">
+                        Mobile Number
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="mobile"
+                        name="mobile"
+                        placeholder="Enter mobile number"
+                        maxlength="10"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-group whatsapp-opt-in">
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="whatsappEnabled"
+                        >
+                        Enable WhatsApp bill, payment, and reminder messages
+                    </label>
+                    <small>
+                        Messages use this mobile number. Enable only when the customer has agreed.
+                    </small>
+                </div>
+
+
+                <!-- CREDIT LIMIT -->
+
+                <div class="form-group">
+
+                    <label for="creditLimit">
+                        Credit Limit
+                    </label>
+
+                    <input
+                        type="number"
+                        id="creditLimit"
+                        name="creditLimit"
+                        placeholder="Enter credit limit"
+                        min="0"
+                    >
+
+                </div>
+
+
+                <!-- VILLAGE -->
+
+                <div class="form-group">
+
+                    <label for="village">
+                        Village
+                    </label>
+
+                    <input
+                        type="text"
+                        id="village"
+                        name="village"
+                        placeholder="Enter village"
+                    >
+
+                </div>
+
+
+                <!-- NOTES -->
+
+                <div class="form-group">
+
+                    <label for="notes">
+                        Notes
+                    </label>
+
+                    <textarea
+                        id="notes"
+                        name="notes"
+                        placeholder="Optional notes"
+                        rows="4"
+                    ></textarea>
+
+                </div>
+
+
+                <!-- BUTTONS -->
+
+                <div class="form-buttons">
+
+                    <a
+                        href="/"
+                        class="cancel-btn"
+                    >
+                        Cancel
+                    </a>
+
+
+                    <button
+                        type="submit"
+                        class="submit-btn"
+                    >
+                        Add Customer
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

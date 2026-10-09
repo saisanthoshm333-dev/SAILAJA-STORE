@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today's Expense | SAILAJA STORE</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container mobile-shell">
+        <%- include("partials/header") %>
+
+        <main class="supplier-screen">
+            <section class="summary-card">
+                <div class="summary-meta">
+                    <span>Today's Expense</span>
+                    <h2>₹<%= Number(todayTotal || 0).toLocaleString("en-IN") %></h2>
+                </div>
+                <p><%= todayItemCount %> item<%= todayItemCount === 1 ? "" : "s" %> today</p>
+            </section>
+
+            <section class="card-block">
+                <div class="section-title-row">
+                    <h3>Today's entries</h3>
+                    <a href="/suppliers/expenses/add">+ Add Expense</a>
+                </div>
+                <% if (expenses.length === 0) { %>
+                    <div class="empty-state">
+                        <p>No expenses recorded today.</p>
+                    </div>
+                <% } else { %>
+                    <% expenses.forEach((expense) => { %>
+                        <div class="expense-row">
+                            <div>
+                                <strong><%= expense.itemName %></strong>
+                                <small><%= new Date(expense.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) %><%= expense.notes ? ` · ${expense.notes}` : "" %></small>
+                            </div>
+                            <div class="expense-row__meta">
+                                <span>₹<%= Number(expense.amount || 0).toLocaleString("en-IN") %></span>
+                                <div class="expense-row__actions">
+                                    <button class="link-button" type="button" data-edit-expense data-id="<%= expense._id %>" data-date="<%= toDateInputValue(expense.date) %>" data-amount="<%= expense.amount %>" data-notes="<%= expense.notes %>">Edit</button>
+                                    <button class="link-button danger" type="button" data-delete-expense data-id="<%= expense._id %>">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } %>
+            </section>
+        </main>
+    </div>
+
+    <%- include("partials/expense-editor") %>
+</body>
+</html>

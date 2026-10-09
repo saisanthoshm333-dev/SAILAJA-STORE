@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title><%= customer.name %> - SAILAJA STORE</title>
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <div class="container">
+
+
+        <!-- =========================
+             COMMON HEADER
+        ========================== -->
+
+        <%- include("partials/header") %>
+
+
+
+        <!-- =========================
+             HISTORY CONTAINER
+        ========================== -->
+
+        <div class="history-container">
+
+
+            <!-- =========================
+                 HISTORY HEADER
+            ========================== -->
+
+            <div class="history-header">
+
+
+                <a
+                    href="/"
+                    class="back-btn"
+                >
+
+                    ← Back
+
+                </a>
+
+
+
+                <div class="history-customer">
+
+
+                    <div class="history-avatar">
+
+                        <%= customer.name
+                            .charAt(0)
+                            .toUpperCase() %>
+
+                    </div>
+
+
+                    <div>
+
+                        <h1>
+                            <%= customer.name %>
+                        </h1>
+
+                        <p>
+                            <%= customer.mobile %>
+                        </p>
+
+                    </div>
+
+
+                </div>
+
+
+
+                <div class="history-balance">
+
+                    <span>
+                        Pending
+                    </span>
+
+                    <strong>
+
+                        ₹<%= customer.currentBalance
+                            .toLocaleString("en-IN") %>
+
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =========================
+                 APPU / JAMA ACTIONS
+            ========================== -->
+
+            <div class="history-actions">
+
+                <button
+                    type="button"
+                    class="appu-btn"
+                    onclick="openAppuModal(
+                        '<%= customer._id %>',
+                        '<%= customer.name %>',
+                        <%= customer.currentBalance %>
+                    )"
+                >
+
+                    Appu
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="jama-btn"
+                    onclick="openJamaModal(
+                        '<%= customer._id %>',
+                        '<%= customer.name %>',
+                        <%= customer.currentBalance %>
+                    )"
+                >
+
+                    Jama
+
+                </button>
+
+            </div>
+
+
+
+            <!-- =========================
+                 APPU / JAMA TOGGLE
+            ========================== -->
+
+            <div class="history-toggle">
+
+
+                <button
+                    class="history-tab active"
+                    id="appuTab"
+                    onclick="showHistory('appu')"
+                >
+
+                    Appu
+
+                </button>
+
+
+                <button
+                    class="history-tab"
+                    id="jamaTab"
+                    onclick="showHistory('jama')"
+                >
+
+                    Jama
+
+                </button>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+                 APPU HISTORY
+            ================================================== -->
+
+            <div
+                id="appuHistory"
+                class="history-section"
+            >
+
+
+                <div class="history-section-header">
+
+                    <h2>
+                        Appu History
+                    </h2>
+
+                    <span class="history-total">
+
+                        Total: ₹<%= totalAppu
+                            .toLocaleString("en-IN") %>
+
+                    </span>
+
+                </div>
+
+
+
+                <% if (appuHistory.length === 0) { %>
+
+
+                    <div class="empty-history">
+
+                        No Appu transactions yet.
+
+                    </div>
+
+
+                <% } else { %>
+
+
+                    <%
+
+                        const appuGroups = {};
+
+                        appuHistory.forEach(bill => {
+
+                            const dateKey =
+                                new Date(bill.createdAt)
+                                    .toLocaleDateString("en-IN");
+
+                            if (!appuGroups[dateKey]) {
+                                appuGroups[dateKey] = [];
+                            }
+
+                            appuGroups[dateKey].push(bill);
+
+                        });
+
+                    %>
+
+
+
+                    <% Object.keys(appuGroups).forEach(dateKey => { %>
+
+
+                        <%
+
+                            const dayBills =
+                                appuGroups[dateKey];
+
+                            const dayTotal =
+                                dayBills.reduce(
+                                    (total, bill) =>
+                                        total + bill.amount,
+                                    0
+                                );
+
+                        %>
+
+
+
+                        <!-- DAY -->
+
+                        <div class="history-day">
+
+
+                            <div class="history-day-header">
+
+                                <strong>
+                                    <%= dateKey %>
+                                </strong>
+
+                                <span>
+
+                                    ₹<%= dayTotal
+                                        .toLocaleString("en-IN") %>
+
+                                </span>
+
+                            </div>
+
+
+
+                            <% dayBills.forEach(bill => { %>
+
+
+                                <div class="transaction">
+
+
+                                    <div class="transaction-date">
+
+                                        <%= new Date(bill.createdAt)
+                                            .toLocaleTimeString(
+                                                "en-IN",
+                                                {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit"
+                                                }
+                                            ) %>
+
+                                    </div>
+
+
+
+                                    <div class="transaction-info">
+
+                                        <strong>
+
+                                            <%= bill.description ||
+                                                "Shop purchase" %>
+
+                                        </strong>
+
+                                        <span>
+
+                                            Balance after:
+
+                                            ₹<%= bill.balanceAfter
+                                                .toLocaleString("en-IN") %>
+
+                                        </span>
+
+                                    </div>
+
+
+
+                                    <div class="transaction-amount">
+
+                                        +₹<%= bill.amount
+                                            .toLocaleString("en-IN") %>
+
+                                    </div>
+
+
+                                </div>
+
+
+                            <% }) %>
+
+
+                        </div>
+
+
+                    <% }) %>
+
+
+                <% } %>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+                 JAMA HISTORY
+            ================================================== -->
+
+            <div
+                id="jamaHistory"
+                class="history-section"
+                style="display: none;"
+            >
+
+
+                <div class="history-section-header">
+
+                    <h2>
+                        Jama History
+                    </h2>
+
+                    <span class="history-total">
+
+                        Total: ₹<%= totalJama
+                            .toLocaleString("en-IN") %>
+
+                    </span>
+
+                </div>
+
+
+
+                <% if (jamaHistory.length === 0) { %>
+
+
+                    <div class="empty-history">
+
+                        No Jama transactions yet.
+
+                    </div>
+
+
+                <% } else { %>
+
+
+                    <%
+
+                        const jamaGroups = {};
+
+                        jamaHistory.forEach(payment => {
+
+                            const dateKey =
+                                new Date(payment.createdAt)
+                                    .toLocaleDateString("en-IN");
+
+                            if (!jamaGroups[dateKey]) {
+                                jamaGroups[dateKey] = [];
+                            }
+
+                            jamaGroups[dateKey].push(payment);
+
+                        });
+
+                    %>
+
+
+
+                    <% Object.keys(jamaGroups).forEach(dateKey => { %>
+
+
+                        <%
+
+                            const dayPayments =
+                                jamaGroups[dateKey];
+
+                            const dayTotal =
+                                dayPayments.reduce(
+                                    (total, payment) =>
+                                        total + payment.amount,
+                                    0
+                                );
+
+                        %>
+
+
+
+                        <!-- DAY -->
+
+                        <div class="history-day">
+
+
+                            <div class="history-day-header">
+
+                                <strong>
+                                    <%= dateKey %>
+                                </strong>
+
+                                <span>
+
+                                    ₹<%= dayTotal
+                                        .toLocaleString("en-IN") %>
+
+                                </span>
+
+                            </div>
+
+
+
+                            <% dayPayments.forEach(payment => { %>
+
+
+                                <div class="transaction">
+
+
+                                    <div class="transaction-date">
+
+                                        <%= new Date(payment.createdAt)
+                                            .toLocaleTimeString(
+                                                "en-IN",
+                                                {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit"
+                                                }
+                                            ) %>
+
+                                    </div>
+
+
+
+                                    <div class="transaction-info">
+
+                                        <strong>
+
+                                            <%= payment.note ||
+                                                "Payment received" %>
+
+                                        </strong>
+
+                                        <span>
+
+                                            <%= payment.paymentMethod %>
+
+                                            • Balance after:
+
+                                            ₹<%= payment.balanceAfter
+                                                .toLocaleString("en-IN") %>
+
+                                        </span>
+
+                                    </div>
+
+
+
+                                    <div class="transaction-amount">
+
+                                        -₹<%= payment.amount
+                                            .toLocaleString("en-IN") %>
+
+                                    </div>
+
+
+                                </div>
+
+
+                            <% }) %>
+
+
+                        </div>
+
+
+                    <% }) %>
+
+
+                <% } %>
+
+
+            </div>
+
+
+
+            <!-- =================================================
+                 SUMMARY
+            ================================================== -->
+
+            <div class="history-summary">
+
+
+                <div>
+
+                    <span>
+                        Total Appu
+                    </span>
+
+                    <strong>
+
+                        ₹<%= totalAppu
+                            .toLocaleString("en-IN") %>
+
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Total Jama
+                    </span>
+
+                    <strong>
+
+                        ₹<%= totalJama
+                            .toLocaleString("en-IN") %>
+
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Pending
+                    </span>
+
+                    <strong>
+
+                        ₹<%= (totalAppu - totalJama)
+                            .toLocaleString("en-IN") %>
+
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =========================
+                 PDF
+            ========================== -->
+
+            <a
+                href="/customers/<%= customer._id %>/history/pdf"
+                class="generate-pdf-btn"
+            >
+
+                Generate PDF
+
+            </a>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =================================================
+         APPU MODAL
+    ================================================== -->
+
+    <div
+        id="appuModal"
+        class="modal"
+    >
+
+
+        <div class="modal-box">
+
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2>
+                        Add Appu
+                    </h2>
+
+                    <p id="appuCustomerName"></p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="close-modal"
+                    onclick="closeAppuModal()"
+                >
+
+                    ×
+
+                </button>
+
+            </div>
+
+
+
+            <!-- CURRENT BALANCE -->
+
+            <div class="current-balance">
+
+                <span>
+                    Current Lekka
+                </span>
+
+                <strong id="appuCurrentBalance">
+                    ₹0
+                </strong>
+
+            </div>
+
+
+
+            <!-- APPU FORM -->
+
+            <form id="appuForm">
+
+
+                <input
+                    type="hidden"
+                    id="appuCustomerId"
+                >
+
+
+
+                <div class="form-group">
+
+                    <label for="appuAmount">
+
+                        Amount *
+
+                    </label>
+
+
+                    <input
+                        type="number"
+                        id="appuAmount"
+                        min="1"
+                        placeholder="Enter amount"
+                        required
+                    >
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="appuDescription">
+
+                        Description
+
+                        <span>
+                            (optional)
+                        </span>
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        id="appuDescription"
+                        placeholder="Example: Rice, oil, groceries"
+                    >
+
+                </div>
+
+
+
+                <div class="new-balance">
+
+                    <span>
+                        New Lekka
+                    </span>
+
+                    <strong id="appuNewBalance">
+                        ₹0
+                    </strong>
+
+                </div>
+
+
+
+                <div class="modal-actions">
+
+
+                    <button
+                        type="button"
+                        class="cancel-modal-btn"
+                        onclick="closeAppuModal()"
+                    >
+
+                        Cancel
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="confirm-appu-btn"
+                    >
+
+                        Add Appu
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =================================================
+         JAMA MODAL
+    ================================================== -->
+
+    <div
+        id="jamaModal"
+        class="modal"
+    >
+
+
+        <div class="modal-box">
+
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2>
+                        Add Jama
+                    </h2>
+
+                    <p id="jamaCustomerName"></p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="close-modal"
+                    onclick="closeJamaModal()"
+                >
+
+                    ×
+
+                </button>
+
+            </div>
+
+
+
+            <!-- CURRENT BALANCE -->
+
+            <div class="current-balance">
+
+                <span>
+                    Current Lekka
+                </span>
+
+                <strong id="jamaCurrentBalance">
+                    ₹0
+                </strong>
+
+            </div>
+
+
+
+            <!-- JAMA FORM -->
+
+            <form id="jamaForm">
+
+
+                <input
+                    type="hidden"
+                    id="jamaCustomerId"
+                >
+
+
+
+                <div class="form-group">
+
+                    <label for="jamaAmount">
+
+                        Amount *
+
+                    </label>
+
+
+                    <input
+                        type="number"
+                        id="jamaAmount"
+                        min="1"
+                        placeholder="Enter amount"
+                        required
+                    >
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="jamaPaymentMethod">
+
+                        Payment Method
+
+                    </label>
+
+
+                    <select id="jamaPaymentMethod">
+
+                        <option value="CASH">
+                            Cash
+                        </option>
+
+                        <option value="UPI">
+                            UPI
+                        </option>
+
+                    </select>
+
+
+                </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="jamaNote">
+
+                        Note
+
+                        <span>
+                            (optional)
+                        </span>
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        id="jamaNote"
+                        placeholder="Example: Paid full amount"
+                    >
+
+                </div>
+
+
+
+                <div class="new-balance">
+
+                    <span>
+                        New Lekka
+                    </span>
+
+                    <strong id="jamaNewBalance">
+                        ₹0
+                    </strong>
+
+                </div>
+
+
+
+                <div class="modal-actions">
+
+
+                    <button
+                        type="button"
+                        class="cancel-modal-btn"
+                        onclick="closeJamaModal()"
+                    >
+
+                        Cancel
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="confirm-jama-btn"
+                    >
+
+                        Add Jama
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================== -->
+
+    <script src="/js/script.js"></script>
+
+
+
+    <!-- =========================
+         HISTORY TOGGLE SCRIPT
+    ========================== -->
+
+    <script>
+
+        function showHistory(type) {
+
+            const appuHistory =
+                document.getElementById("appuHistory");
+
+            const jamaHistory =
+                document.getElementById("jamaHistory");
+
+            const appuTab =
+                document.getElementById("appuTab");
+
+            const jamaTab =
+                document.getElementById("jamaTab");
+
+
+            if (type === "appu") {
+
+                appuHistory.style.display = "block";
+
+                jamaHistory.style.display = "none";
+
+
+                appuTab.classList.add("active");
+
+                jamaTab.classList.remove("active");
+
+
+            } else {
+
+                appuHistory.style.display = "none";
+
+                jamaHistory.style.display = "block";
+
+
+                appuTab.classList.remove("active");
+
+                jamaTab.classList.add("active");
+
+            }
+
+        }
+
+    </script>
+
+
+</body>
+
+</html>

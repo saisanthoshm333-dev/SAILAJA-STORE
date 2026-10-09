@@ -1,0 +1,6 @@
+node_modules/
+.whatsapp-session/
+.env
+.env.*
+!.env.example
+android/local.properties

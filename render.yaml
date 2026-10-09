@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: sailaja-store
+    runtime: node
+    plan: standard
+    buildCommand: npm ci && npm run install:browser
+    startCommand: npm start
+    healthCheckPath: /health
+    disk:
+      name: whatsapp-session
+      mountPath: /opt/render/project/src/.whatsapp-session
+      sizeGB: 1
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: WHATSAPP_SHOW_BROWSER
+        value: "false"
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/project/src/node_modules/.cache/puppeteer

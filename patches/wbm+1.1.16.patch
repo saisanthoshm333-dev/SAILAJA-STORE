@@ -1,0 +1,260 @@
+diff --git a/node_modules/wbm/src/api.js b/node_modules/wbm/src/api.js
+--- a/node_modules/wbm/src/api.js
++++ b/node_modules/wbm/src/api.js
+@@ -8,15 +8,21 @@ var rimraf = require("rimraf");
+ let browser = null;
+ let page = null;
+ let counter = { fails: 0, success: 0 }
+-const tmpPath = path.resolve(__dirname, '../tmp');
++const tmpPath = path.resolve(__dirname, '../../../.whatsapp-session');
+ 
+ const SELECTORS = {
+     LOADING: "progress",
+-    INSIDE_CHAT: "document.getElementsByClassName('two')[0]",
+-    QRCODE_PAGE: "body > div > div > .landing-wrapper",
++    INSIDE_CHAT: "document.querySelector('#pane-side')",
++    QRCODE_PAGE: "div[data-ref]",
+     QRCODE_DATA: "div[data-ref]",
+     QRCODE_DATA_ATTR: "data-ref",
+-    SEND_BUTTON: 'div:nth-child(2) > button > span[data-icon="send"]'
++    SEND_BUTTONS: [
++        'footer button[aria-label="Send"]',
++        'footer [role="button"][aria-label="Send"]',
++        'footer button[data-testid="send"]',
++        'footer [data-testid="send"]',
++        'footer span[data-icon="send"]'
++    ]
+ };
+ 
+ /**
+@@ -36,12 +42,14 @@ async function start({ showBrowser = false, qrCodeData = false, session = true }
+     }
+     try {
+         browser = await puppeteer.launch(args);
++        browser.on("disconnected", () => {
++            console.log("WhatsApp disconnected.");
++        });
+         page = await browser.newPage();
+         // prevent dialog blocking page and just accept it(necessary when a message is sent too fast)
+         page.on("dialog", async dialog => { await dialog.accept(); });
+         // fix the chrome headless mode true issues
+         // https://gitmemory.com/issue/GoogleChrome/puppeteer/1766/482797370
+-        await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36");
+         page.setDefaultTimeout(60000);
+ 
+         await page.goto("https://web.whatsapp.com");
+@@ -59,7 +67,6 @@ async function start({ showBrowser = false, qrCodeData = false, session = true }
+         }
+ 
+     } catch (err) {
+-        deleteSession(tmpPath);
+         throw err;
+     }
+ }
+@@ -113,10 +120,10 @@ async function getQRCodeData() {
+  */
+ async function generateQRCode() {
+     try {
+-        console.log("generating QRCode...");
+         const qrcodeData = await getQRCodeData();
++        console.log("WhatsApp QR generated.");
+         qrcode.generate(qrcodeData, { small: true });
+-        console.log("QRCode generated! Scan it using Whatsapp App.");
++        console.log("WhatsApp QR displayed. Scan it using the dedicated shop account.");
+     } catch (err) {
+         throw await QRCodeExeption("QR Code can't be generated(maybe your connection is too slow).");
+     }
+@@ -155,22 +162,182 @@ async function sendTo(phoneOrContact, message) {
+         phone = phoneOrContact.phone;
+         message = generateCustomMessage(phoneOrContact, message);
+     }
++
++    console.log("Sending WhatsApp message...");
++
+     try {
+-        process.stdout.write("Sending Message...\r");
++        console.log("Opening chat...");
+         await page.goto(`https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`);
+-        await page.waitForSelector(SELECTORS.LOADING, { hidden: true, timeout: 60000 });
+-        await page.waitForSelector(SELECTORS.SEND_BUTTON, { timeout: 5000 });
+-        await page.keyboard.press("Enter");
+-        await page.waitFor(1000);
+-        process.stdout.clearLine();
+-        process.stdout.cursorTo(0);
+-        process.stdout.write(`${phone} Sent\n`);
++
++        await page.waitForFunction((expectedMessage) => {
++            const normalize = (value) => value.replace(/\s+/g, " ").trim();
++            const composer = document.querySelector('footer [contenteditable="true"]');
++            return composer &&
++                normalize(composer.innerText || composer.textContent || "")
++                    .includes(normalize(expectedMessage));
++        }, { timeout: 30000 }, message);
++        console.log("Message populated...");
++
++        const sendButtonHandle = await page.waitForFunction((selectors) => {
++            for (const selector of selectors) {
++                for (const match of document.querySelectorAll(selector)) {
++                    const button = match.matches('button,[role="button"]')
++                        ? match
++                        : match.closest('button,[role="button"]');
++                    if (!button) {
++                        continue;
++                    }
++
++                    const style = window.getComputedStyle(button);
++                    const rect = button.getBoundingClientRect();
++                    const visible = rect.width > 0 &&
++                        rect.height > 0 &&
++                        style.visibility !== "hidden" &&
++                        style.display !== "none";
++                    const enabled = !button.disabled &&
++                        button.getAttribute("aria-disabled") !== "true";
++
++                    if (visible && enabled) {
++                        return button;
++                    }
++                }
++            }
++
++            return false;
++        }, { timeout: 15000 }, SELECTORS.SEND_BUTTONS).catch(async (error) => {
++            const diagnostics = await page.evaluate((selectors) => ({
++                url: location.origin + location.pathname,
++                title: document.title,
++                readyState: document.readyState,
++                composerCount: document.querySelectorAll(
++                    'footer [contenteditable="true"]'
++                ).length,
++                sendCandidates: selectors.flatMap((selector) =>
++                    Array.from(document.querySelectorAll(selector)).map((element) => ({
++                        tag: element.tagName,
++                        ariaLabel: element.getAttribute("aria-label"),
++                        testId: element.getAttribute("data-testid"),
++                        icon: element.getAttribute("data-icon"),
++                        disabled: Boolean(element.disabled) ||
++                            element.getAttribute("aria-disabled") === "true"
++                    }))
++                ).slice(0, 20),
++                visibleButtons: Array.from(
++                    document.querySelectorAll('button,[role="button"]')
++                ).filter((button) => {
++                    const rect = button.getBoundingClientRect();
++                    const style = window.getComputedStyle(button);
++                    return rect.width > 0 &&
++                        rect.height > 0 &&
++                        style.visibility !== "hidden" &&
++                        style.display !== "none";
++                }).slice(0, 40).map((button) => ({
++                    tag: button.tagName,
++                    ariaLabel: button.getAttribute("aria-label"),
++                    title: button.getAttribute("title"),
++                    testId: button.getAttribute("data-testid"),
++                    icon: button.querySelector("[data-icon]")?.getAttribute("data-icon"),
++                    disabled: Boolean(button.disabled) ||
++                        button.getAttribute("aria-disabled") === "true"
++                }))
++            }), SELECTORS.SEND_BUTTONS);
++
++            console.error("WhatsApp send button not found.", diagnostics);
++            throw error;
++        });
++
++        const sendButton = sendButtonHandle.asElement();
++        if (!sendButton) {
++            throw new Error("WhatsApp send button lookup did not return an element");
++        }
++
++        const sendButtonDetails = await sendButton.evaluate((button) => ({
++            tag: button.tagName,
++            ariaLabel: button.getAttribute("aria-label"),
++            title: button.getAttribute("title"),
++            testId: button.getAttribute("data-testid"),
++            icon: button.querySelector("[data-icon]")?.getAttribute("data-icon"),
++            role: button.getAttribute("role")
++        }));
++        console.log("Send button detected...", sendButtonDetails);
++        console.log("Clicking Send...");
++
++        const previousMessageCount = await page.evaluate((expectedMessage) => {
++            const normalize = (value) => value.replace(/\s+/g, " ").trim();
++            const expected = normalize(expectedMessage);
++            const sentMessages = document.querySelectorAll(
++                '[data-testid="msg-container"], .message-out'
++            );
++
++            return Array.from(sentMessages).filter((sentMessage) =>
++                normalize(sentMessage.innerText || sentMessage.textContent || "")
++                    .includes(expected)
++            ).length;
++        }, message);
++
++        const waitForSentMessage = () => page.waitForFunction(
++            (expectedMessage, previousCount) => {
++                const normalize = (value) => value.replace(/\s+/g, " ").trim();
++                const expected = normalize(expectedMessage);
++                const sentMessages = document.querySelectorAll(
++                    '[data-testid="msg-container"], .message-out'
++                );
++                const currentMessageCount = Array.from(sentMessages).filter(
++                    (sentMessage) =>
++                        normalize(sentMessage.innerText || sentMessage.textContent || "")
++                            .includes(expected)
++                ).length;
++                const composer = document.querySelector(
++                    'footer [contenteditable="true"]'
++                );
++                const messageRemainsInComposer = composer &&
++                    normalize(composer.innerText || composer.textContent || "")
++                        .includes(expected);
++
++                return currentMessageCount > previousCount &&
++                    !messageRemainsInComposer;
++            },
++            { timeout: 15000 },
++            message,
++            previousMessageCount
++        );
++
++        try {
++            await sendButton.click();
++            await waitForSentMessage();
++        } catch (clickError) {
++            const messageStillInComposer = await page.evaluate((expectedMessage) => {
++                const normalize = (value) => value.replace(/\s+/g, " ").trim();
++                const composer = document.querySelector('footer [contenteditable="true"]');
++                return composer &&
++                    normalize(composer.innerText || composer.textContent || "")
++                        .includes(normalize(expectedMessage));
++            }, message);
++
++            if (!messageStillInComposer) {
++                throw clickError;
++            }
++
++            console.warn(
++                "Send button click failed; using Enter as fallback:",
++                clickError.message
++            );
++            const composer = await page.$('footer [contenteditable="true"]');
++            if (!composer) {
++                throw new Error("WhatsApp message composer was not found for Enter fallback");
++            }
++            await composer.focus();
++            await page.keyboard.press("Enter");
++            await waitForSentMessage();
++        }
++
++        console.log("WhatsApp message sent successfully.");
++        console.log(`${phone} Sent`);
+         counter.success++;
+     } catch (err) {
+-        process.stdout.clearLine();
+-        process.stdout.cursorTo(0);
+-        process.stdout.write(`${phone} Failed\n`);
++        console.error(`${phone} Failed`);
+         counter.fails++;
++        throw err;
+     }
+ }
+ 

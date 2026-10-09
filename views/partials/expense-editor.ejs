@@ -1,0 +1,107 @@
+<dialog class="expense-editor" id="expense-editor">
+    <form id="expense-edit-form" class="stack-form">
+        <div class="section-title-row">
+            <h3>Edit Expense</h3>
+            <button class="close-dialog" type="button" data-close-editor aria-label="Close">×</button>
+        </div>
+
+        <label>
+            <span>Date</span>
+            <input type="date" name="date" required>
+        </label>
+
+        <label>
+            <span>Amount</span>
+            <input type="number" name="amount" min="0.01" max="1000000000" step="0.01" required>
+        </label>
+
+        <label>
+            <span>Optional note</span>
+            <input type="text" name="notes" maxlength="250">
+        </label>
+
+        <p id="expense-edit-message" class="form-message" role="status"></p>
+        <button class="primary-action submit-button" type="submit">Save Changes</button>
+    </form>
+</dialog>
+
+<script>
+    (() => {
+        const dialog = document.getElementById("expense-editor");
+        const form = document.getElementById("expense-edit-form");
+        const message = document.getElementById("expense-edit-message");
+        let editingExpenseId = "";
+
+        document.addEventListener("click", async (event) => {
+            const editButton = event.target.closest("[data-edit-expense]");
+
+            if (editButton) {
+                editingExpenseId = editButton.dataset.id;
+                form.elements.date.value = editButton.dataset.date;
+                form.elements.amount.value = editButton.dataset.amount;
+                form.elements.notes.value = editButton.dataset.notes || "";
+                message.textContent = "";
+                dialog.showModal();
+                return;
+            }
+
+            if (event.target.closest("[data-close-editor]")) {
+                dialog.close();
+                return;
+            }
+
+            const deleteButton = event.target.closest("[data-delete-expense]");
+
+            if (!deleteButton || !window.confirm("Delete this expense?")) {
+                return;
+            }
+
+            deleteButton.disabled = true;
+
+            try {
+                const response = await fetch(`/api/expenses/${encodeURIComponent(deleteButton.dataset.id)}`, {
+                    method: "DELETE"
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    window.alert(result.message || "Unable to delete this expense. Please try again.");
+                    return;
+                }
+
+                window.location.reload();
+            } catch (error) {
+                window.alert("Unable to connect. Please try again.");
+            } finally {
+                deleteButton.disabled = false;
+            }
+        });
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            message.textContent = "";
+            const submitButton = form.querySelector("[type=submit]");
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch(`/api/expenses/${encodeURIComponent(editingExpenseId)}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(Object.fromEntries(new FormData(form).entries()))
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    message.textContent = result.message || "Unable to save changes. Please try again.";
+                    return;
+                }
+
+                window.location.reload();
+            } catch (error) {
+                message.textContent = "Unable to connect. Please try again.";
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    })();
+</script>

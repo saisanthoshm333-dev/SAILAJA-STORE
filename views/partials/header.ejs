@@ -1,0 +1,73 @@
+<% const stats = typeof monthlyStats !== "undefined" ? monthlyStats : { totalAppu: 0, totalJama: 0, totalPending: 0 }; %>
+<% const section = typeof currentSection !== "undefined" ? currentSection : "customers"; %>
+
+<header class="site-header <%= section === "suppliers" ? "site-header--supplier" : "" %>">
+
+    <div class="header-brand">
+        <h1>SAILAJА STORE</h1>
+        <p>Your simple digital Lekka</p>
+    </div>
+
+    <div class="section-switcher" aria-label="Section switcher">
+        <a href="/" class="section-tab <%= section === "customers" ? "active" : "" %>">Customers</a>
+        <a href="/suppliers" class="section-tab <%= section === "suppliers" ? "active" : "" %>">Suppliers</a>
+    </div>
+
+    <% if (section === "customers") { %>
+    <div class="header-search">
+
+        <div class="search-input-wrapper">
+
+            <span class="search-icon">
+                🔍
+            </span>
+
+            <input
+                type="text"
+                id="customerSearch"
+                placeholder="Search customer..."
+                autocomplete="off"
+            >
+
+        </div>
+
+
+        <!-- SEARCH RESULTS -->
+
+        <div
+            id="customerSearchResults"
+            class="customer-search-results"
+        ></div>
+
+    </div>
+
+
+    <div class="header-metrics">
+
+        <div class="header-metric">
+            <span>This month total appu</span>
+            <strong>₹<%= Number(stats.totalAppu || 0).toLocaleString("en-IN") %></strong>
+        </div>
+
+        <div class="header-metric">
+            <span>This month total jama</span>
+            <strong>₹<%= Number(stats.totalJama || 0).toLocaleString("en-IN") %></strong>
+        </div>
+
+        <div class="header-metric pending">
+            <span>Total appu pending</span>
+            <strong>₹<%= Number(stats.totalPending || 0).toLocaleString("en-IN") %></strong>
+        </div>
+
+    </div>
+
+
+    <a
+        href="/customers/add"
+        class="add-customer-btn"
+    >
+        + Add Customer
+    </a>
+    <% } %>
+
+</header>

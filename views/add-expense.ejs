@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Expense | SAILAJA STORE</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container mobile-shell">
+        <%- include("partials/header") %>
+
+        <main class="supplier-screen">
+            <section class="card-block">
+                <div class="section-title-row">
+                    <h2>Add Expense</h2>
+                    <a href="/suppliers">Cancel</a>
+                </div>
+
+                <% if (items.length === 0) { %>
+                    <div class="empty-state">
+                        <p>Add an item first, then record its expense.</p>
+                        <a class="primary-action button-link" href="/suppliers">Go to Items</a>
+                    </div>
+                <% } else { %>
+                    <form id="expense-form" class="stack-form">
+                        <label>
+                            <span>Item</span>
+                            <select name="itemId" required>
+                                <option value="">Select item</option>
+                                <% items.forEach((item) => { %>
+                                    <option value="<%= item._id %>" <%= String(item._id) === selectedItemId ? "selected" : "" %>><%= item.name %></option>
+                                <% }) %>
+                            </select>
+                        </label>
+
+                        <label>
+                            <span>Amount</span>
+                            <input type="number" name="amount" min="0.01" max="1000000000" step="0.01" placeholder="₹ Amount" required>
+                        </label>
+
+                        <label>
+                            <span>Date</span>
+                            <input type="date" name="date" value="<%= todayValue %>" required>
+                        </label>
+
+                        <label>
+                            <span>Optional note</span>
+                            <input type="text" name="notes" maxlength="250" placeholder="Mother Dairy 1L">
+                        </label>
+
+                        <p id="expense-form-message" class="form-message" role="status"></p>
+                        <button class="primary-action submit-button" type="submit">Save Expense</button>
+                    </form>
+                <% } %>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const expenseForm = document.getElementById("expense-form");
+        const expenseMessage = document.getElementById("expense-form-message");
+
+        if (expenseForm) {
+            expenseForm.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                expenseMessage.textContent = "";
+                const submitButton = expenseForm.querySelector("[type=submit]");
+                submitButton.disabled = true;
+
+                try {
+                    const response = await fetch("/api/expenses", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(Object.fromEntries(new FormData(expenseForm).entries()))
+                    });
+                    const result = await response.json();
+
+                    if (!response.ok || !result.success) {
+                        expenseMessage.textContent = result.message || "Unable to save. Please try again.";
+                        return;
+                    }
+
+                    window.location.assign("/suppliers");
+                } catch (error) {
+                    expenseMessage.textContent = "Unable to connect. Please try again.";
+                } finally {
+                    submitButton.disabled = false;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

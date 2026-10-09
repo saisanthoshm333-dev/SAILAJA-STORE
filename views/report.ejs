@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports | SAILAJA STORE</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container mobile-shell">
+        <%- include("partials/header") %>
+
+        <main class="supplier-screen report-screen">
+            <section class="card-block report-card">
+                <div class="report-heading">
+                    <span class="report-store-name">SAILAJA STORE</span>
+                    <h2>Expense Report</h2>
+                </div>
+
+                <p class="report-range-summary">
+                    From <strong><%= new Date(`${from}T00:00:00`).toLocaleDateString("en-IN") %></strong>
+                    to <strong><%= new Date(`${to}T00:00:00`).toLocaleDateString("en-IN") %></strong>
+                </p>
+
+                <form class="stack-form" id="report-form" method="GET" action="/suppliers/report/pdf">
+                    <fieldset class="date-range-fields">
+                        <legend>Select Date Range</legend>
+                        <label>
+                            <span>From date</span>
+                            <input type="date" name="from" value="<%= from %>" required>
+                        </label>
+
+                        <span class="date-range-separator" aria-hidden="true">to</span>
+
+                        <label>
+                            <span>To date</span>
+                            <input type="date" name="to" value="<%= to %>" required>
+                        </label>
+                    </fieldset>
+
+                    <p class="form-message" id="report-form-message" role="status"></p>
+                    <button class="primary-action submit-button" type="submit">Generate PDF</button>
+                </form>
+            </section>
+
+            <section class="report-includes" aria-labelledby="report-includes-title">
+                <h3 id="report-includes-title">PDF will include</h3>
+                <ul>
+                    <li>Total expense for the selected period</li>
+                    <li>Item-wise totals</li>
+                    <li>Day-wise entries for each item</li>
+                    <li>A clean, printable summary</li>
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const reportForm = document.getElementById("report-form");
+        const reportMessage = document.getElementById("report-form-message");
+
+        reportForm.addEventListener("submit", (event) => {
+            reportMessage.textContent = "";
+
+            if (reportForm.elements.to.value < reportForm.elements.from.value) {
+                event.preventDefault();
+                reportMessage.textContent = "Choose an end date on or after the start date.";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SAILAJA STORE</title>
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <div class="container">
+
+
+        <!-- =========================
+             COMMON HEADER
+        ========================== -->
+
+        <%- include("partials/header") %>
+
+
+
+        <!-- =========================
+             CUSTOMER LIST
+        ========================== -->
+
+        <div class="customers">
+
+            <% customers.forEach(customer => { %>
+
+
+                <div
+                    class="customer-box"
+
+                    data-customer-id="<%= customer._id %>"
+
+                    data-customer-name="<%= customer.name %>"
+
+                    data-customer-mobile="<%= customer.mobile %>"
+
+                    data-customer-village="<%= customer.village || '' %>"
+
+                    onclick="window.location.href='/customers/<%= customer._id %>/history'"
+                >
+
+
+                    <!-- CUSTOMER DETAILS -->
+
+                    <div class="customer-details">
+
+
+                        <div class="customer-name">
+
+
+                            <div class="avatar">
+
+                                <%= customer.name
+                                    .charAt(0)
+                                    .toUpperCase() %>
+
+                            </div>
+
+
+                            <div>
+
+                                <h2>
+                                    <%= customer.name %>
+                                </h2>
+
+                                <span>
+                                    <%= customer.village || "Village not added" %>
+                                </span>
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <!-- BALANCE -->
+
+                        <div class="balance">
+
+                            <p>
+                                Pending
+                            </p>
+
+                            <h3>
+
+                                ₹<%= customer.currentBalance
+                                    .toLocaleString("en-IN") %>
+
+                            </h3>
+
+                        </div>
+
+
+                    </div>
+
+
+
+                    <!-- =========================
+                         ACTION BUTTONS
+                    ========================== -->
+
+                    <div class="customer-actions">
+
+
+                        <!-- APPU -->
+
+                        <button
+                            class="appu-btn"
+
+                            onclick="event.stopPropagation(); openAppuModal(
+                                '<%= customer._id %>',
+                                '<%= customer.name %>',
+                                <%= customer.currentBalance %>
+                            )"
+                        >
+
+                            Appu
+
+                        </button>
+
+
+
+                        <!-- JAMA -->
+
+                        <button
+                            class="jama-btn"
+
+                            onclick="event.stopPropagation(); openJamaModal(
+                                '<%= customer._id %>',
+                                '<%= customer.name %>',
+                                <%= customer.currentBalance %>
+                            )"
+                        >
+
+                            Jama
+
+                        </button>
+
+
+
+                        <!-- REMINDER -->
+
+                        <button
+                            class="reminder-btn"
+                            onclick="event.stopPropagation(); sendPaymentReminder('<%= customer._id %>')"
+                        >
+
+                            🔔 Reminder
+
+                        </button>
+
+                        <button
+                            class="whatsapp-toggle-btn"
+                            data-enabled="<%= customer.whatsappEnabled ? 'true' : 'false' %>"
+                            onclick="event.stopPropagation(); toggleCustomerWhatsApp(this, '<%= customer._id %>')"
+                        >
+                            WhatsApp <%= customer.whatsappEnabled ? "On" : "Off" %>
+                        </button>
+
+
+                    </div>
+
+
+                </div>
+
+
+            <% }) %>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =================================================
+         APPU MODAL
+    ================================================== -->
+
+    <div
+        id="appuModal"
+        class="modal"
+    >
+
+
+        <div class="modal-box">
+
+
+            <!-- HEADER -->
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2>
+                        Add Appu
+                    </h2>
+
+                    <p id="appuCustomerName"></p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="close-modal"
+                    onclick="closeAppuModal()"
+                >
+
+                    ×
+
+                </button>
+
+
+            </div>
+
+
+
+            <!-- CURRENT BALANCE -->
+
+            <div class="current-balance">
+
+                <span>
+                    Current Lekka
+                </span>
+
+                <strong id="appuCurrentBalance">
+                    ₹0
+                </strong>
+
+            </div>
+
+
+
+            <!-- APPU FORM -->
+
+            <form id="appuForm">
+
+
+                <input
+                    type="hidden"
+                    id="appuCustomerId"
+                >
+
+
+
+                <!-- AMOUNT -->
+
+                <div class="form-group">
+
+                    <label for="appuAmount">
+
+                        Amount *
+
+                    </label>
+
+
+                    <input
+                        type="number"
+                        id="appuAmount"
+                        min="1"
+                        placeholder="Enter amount"
+                        required
+                    >
+
+                </div>
+
+
+
+                <!-- DESCRIPTION -->
+
+                <div class="form-group">
+
+                    <label for="appuDescription">
+
+                        Description
+
+                        <span>
+                            (optional)
+                        </span>
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        id="appuDescription"
+                        placeholder="Example: Rice, oil, groceries"
+                    >
+
+                </div>
+
+
+
+                <!-- NEW BALANCE -->
+
+                <div class="new-balance">
+
+                    <span>
+                        New Lekka
+                    </span>
+
+                    <strong id="appuNewBalance">
+                        ₹0
+                    </strong>
+
+                </div>
+
+
+
+                <!-- BUTTONS -->
+
+                <div class="modal-actions">
+
+
+                    <button
+                        type="button"
+                        class="cancel-modal-btn"
+                        onclick="closeAppuModal()"
+                    >
+
+                        Cancel
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="confirm-appu-btn"
+                    >
+
+                        Add Appu
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =================================================
+         JAMA MODAL
+    ================================================== -->
+
+    <div
+        id="jamaModal"
+        class="modal"
+    >
+
+
+        <div class="modal-box">
+
+
+            <!-- HEADER -->
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2>
+                        Add Jama
+                    </h2>
+
+                    <p id="jamaCustomerName"></p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="close-modal"
+                    onclick="closeJamaModal()"
+                >
+
+                    ×
+
+                </button>
+
+
+            </div>
+
+
+
+            <!-- CURRENT BALANCE -->
+
+            <div class="current-balance">
+
+                <span>
+                    Current Lekka
+                </span>
+
+                <strong id="jamaCurrentBalance">
+                    ₹0
+                </strong>
+
+            </div>
+
+
+
+            <!-- JAMA FORM -->
+
+            <form id="jamaForm">
+
+
+                <input
+                    type="hidden"
+                    id="jamaCustomerId"
+                >
+
+
+
+                <!-- AMOUNT -->
+
+                <div class="form-group">
+
+                    <label for="jamaAmount">
+
+                        Amount *
+
+                    </label>
+
+
+                    <input
+                        type="number"
+                        id="jamaAmount"
+                        min="1"
+                        placeholder="Enter amount"
+                        required
+                    >
+
+                </div>
+
+
+
+                <!-- PAYMENT METHOD -->
+
+                <div class="form-group">
+
+                    <label for="jamaPaymentMethod">
+
+                        Payment Method
+
+                    </label>
+
+
+                    <select id="jamaPaymentMethod">
+
+                        <option value="CASH">
+                            Cash
+                        </option>
+
+                        <option value="UPI">
+                            UPI
+                        </option>
+
+                    </select>
+
+
+                </div>
+
+
+
+                <!-- NOTE -->
+
+                <div class="form-group">
+
+                    <label for="jamaNote">
+
+                        Note
+
+                        <span>
+                            (optional)
+                        </span>
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        id="jamaNote"
+                        placeholder="Example: Paid full amount"
+                    >
+
+                </div>
+
+
+
+                <!-- NEW BALANCE -->
+
+                <div class="new-balance">
+
+                    <span>
+                        New Lekka
+                    </span>
+
+                    <strong id="jamaNewBalance">
+                        ₹0
+                    </strong>
+
+                </div>
+
+
+
+                <!-- BUTTONS -->
+
+                <div class="modal-actions">
+
+
+                    <button
+                        type="button"
+                        class="cancel-modal-btn"
+                        onclick="closeJamaModal()"
+                    >
+
+                        Cancel
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="confirm-jama-btn"
+                    >
+
+                        Add Jama
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- JAVASCRIPT -->
+
+    <script src="/js/script.js"></script>
+
+
+</body>
+
+</html>
