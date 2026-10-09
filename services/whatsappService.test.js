@@ -32,6 +32,7 @@ test("WhatsApp initialization failure is logged and does not reject", async () =
 
 test("a missing browser executable is reported without starting WBM", async () => {
     const originalExecutablePath = puppeteer.executablePath;
+    const originalCacheDirectory = process.env.PUPPETEER_CACHE_DIR;
     const originalStart = wbm.start;
     const originalError = console.error;
     const loggedErrors = [];
@@ -52,6 +53,11 @@ test("a missing browser executable is reported without starting WBM", async () =
         );
     } finally {
         puppeteer.executablePath = originalExecutablePath;
+        if (originalCacheDirectory === undefined) {
+            delete process.env.PUPPETEER_CACHE_DIR;
+        } else {
+            process.env.PUPPETEER_CACHE_DIR = originalCacheDirectory;
+        }
         wbm.start = originalStart;
         console.error = originalError;
     }

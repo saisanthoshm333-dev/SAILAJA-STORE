@@ -1,17 +1,33 @@
 const fs = require("node:fs");
 const { spawnSync } = require("node:child_process");
 const { createRequire } = require("node:module");
+const path = require("node:path");
+const { configurePuppeteerCache } = require("../services/puppeteerConfig");
 
+const cacheDirectory = configurePuppeteerCache();
 const requireWbm = createRequire(require.resolve("wbm"));
-const puppeteerInstallScript = requireWbm.resolve("puppeteer/install.mjs");
+const puppeteerPackagePath = requireWbm.resolve("puppeteer/package.json");
+const puppeteerPackage = require(puppeteerPackagePath);
+const puppeteerCliPath = path.join(
+    path.dirname(puppeteerPackagePath),
+    typeof puppeteerPackage.bin === "string"
+        ? puppeteerPackage.bin
+        : puppeteerPackage.bin.puppeteer
+);
+
 async function installAndVerifyBrowser() {
     const puppeteer = requireWbm("puppeteer");
     let executablePath = puppeteer.executablePath({ headless: true });
 
     if (!fs.existsSync(executablePath)) {
-        const result = spawnSync(process.execPath, [puppeteerInstallScript], {
-            stdio: "inherit"
-        });
+        console.log(`Installing Puppeteer Chrome into ${cacheDirectory}`);
+        const result = spawnSync(
+            process.execPath,
+            [puppeteerCliPath, "browsers", "install", "chrome"],
+            {
+                stdio: "inherit"
+            }
+        );
 
         if (result.error) {
             throw result.error;
@@ -28,7 +44,7 @@ async function installAndVerifyBrowser() {
 
     if (!fs.existsSync(executablePath)) {
         throw new Error(
-            `Puppeteer browser installation completed without an executable at ${executablePath}.`
+            `Puppeteer Chrome was not installed at ${executablePath} (cache: ${cacheDirectory}).`
         );
     }
 

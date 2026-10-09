@@ -1,8 +1,10 @@
 const fs = require("node:fs");
 const { createRequire } = require("node:module");
+const { configurePuppeteerCache } = require("./puppeteerConfig");
 
 let wbm;
 let puppeteer;
+configurePuppeteerCache();
 
 function describeError(error) {
     const message = error instanceof Error ? error.message : String(error);

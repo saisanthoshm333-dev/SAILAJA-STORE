@@ -3,7 +3,7 @@ services:
     name: sailaja-store
     runtime: node
     plan: standard
-    buildCommand: npm ci && npm run install:browser
+    buildCommand: PUPPETEER_SKIP_DOWNLOAD=true npm ci && npm run install:browser
     startCommand: npm start
     healthCheckPath: /health
     disk:
@@ -15,5 +15,3 @@ services:
         sync: false
       - key: WHATSAPP_SHOW_BROWSER
         value: "false"
-      - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/project/src/.cache/puppeteer

@@ -6,7 +6,7 @@ The Android app is a Capacitor WebView for the existing Express application. Exp
 
 1. Create a MongoDB Atlas database user (separate from your Atlas website login), create/select the `sailaja_store` database, and copy the Atlas **Drivers** connection string. Replace `<db_username>` and `<db_password>` with the database user's credentials. Percent-encode special characters in the username or password before inserting them in the URI.
 2. In Atlas **Network Access**, allow the outbound IP addresses shown for your Render service. Avoid allowing all IP addresses unless you deliberately accept that exposure.
-3. In Render, create a Blueprint from this repository and apply `render.yaml`.
+3. In Render, create a Blueprint from this repository and apply `render.yaml`. Confirm the service's **Settings → Build & Deploy → Build Command** is `PUPPETEER_SKIP_DOWNLOAD=true npm ci && npm run install:browser`; if a dashboard override is configured, update it to this command. The first command skips Puppeteer's implicit install-time download; the second explicitly installs and launch-verifies the locked Chrome build.
 4. Set the requested `MONGODB_URI` secret to the completed Atlas URI. Keep the WhatsApp session disk enabled; it preserves the linked WhatsApp Web session across restarts and deploys.
 5. The Render build downloads the Puppeteer-managed Chrome version required by the locked Puppeteer version and verifies it can run. On the first server start, scan the WhatsApp QR code printed in the Render service logs with the dedicated store account. The service starts Chrome in headless mode on Render.
 6. Wait for the Render health check at `/health` to pass, then copy the assigned HTTPS service origin. No URL is baked into the project.
@@ -25,7 +25,7 @@ npm start
 
 The `.env` file is ignored by Git. Do not paste Atlas credentials into `.env.example` or commit them. Check `/health` locally after startup; a successful response reports `"database": "connected"`.
 
-The Render service uses a paid instance because persistent disks are required for the WhatsApp login session. Puppeteer's browser cache is kept under `/opt/render/project/src/.cache/puppeteer` during the build and is not downloaded again on each server start. WhatsApp Web automation is provided by the existing unofficial WBM integration and may need maintenance if WhatsApp changes its web client.
+The Render service uses a paid instance because persistent disks are required for the WhatsApp login session. During the build, Puppeteer's supported browser installer downloads and verifies the Chrome version required by the locked Puppeteer package. The installer and runtime explicitly use the same project cache directory (`.cache/puppeteer`); Chrome is not downloaded at server startup. If `PUPPETEER_CACHE_DIR` is set directly in the Render dashboard, the application overrides it with this shared project cache path. WhatsApp Web automation is provided by the existing unofficial WBM integration and may need maintenance if WhatsApp changes its web client.
 
 ## Prepare and build the Android app
 
