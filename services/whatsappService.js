@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const { createRequire } = require("node:module");
 const { configurePuppeteerCache } = require("./puppeteerConfig");
+const { shouldShowWhatsAppBrowser } = require("./whatsappConfig");
 
 let wbm;
 let puppeteer;
@@ -49,7 +50,7 @@ function initializeWhatsApp() {
         return initializationPromise;
     }
 
-    initializationPromise = (async () => {
+    initializationPromise = Promise.resolve().then(async () => {
         console.log("WhatsApp initialization started.");
 
         try {
@@ -61,7 +62,7 @@ function initializeWhatsApp() {
                 throw new Error("The WBM Puppeteer package is unavailable");
             }
 
-            const showBrowser = process.env.WHATSAPP_SHOW_BROWSER !== "false";
+            const showBrowser = shouldShowWhatsAppBrowser();
             const executablePath = puppeteer.executablePath({
                 headless: !showBrowser
             });
@@ -90,7 +91,7 @@ function initializeWhatsApp() {
         } finally {
             initializationPromise = null;
         }
-    })();
+    });
 
     return initializationPromise;
 }

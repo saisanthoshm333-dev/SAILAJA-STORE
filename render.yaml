@@ -15,3 +15,5 @@ services:
         sync: false
       - key: WHATSAPP_SHOW_BROWSER
         value: "false"
+      - key: NODE_ENV
+        value: production
